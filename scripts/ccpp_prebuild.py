@@ -20,7 +20,7 @@ from metadata_parser import merge_dictionaries, parse_scheme_tables, parse_varia
 from mkcap import Cap, CapsMakefile, CapsCMakefile, CapsSourcefile, \
                   SchemesMakefile, SchemesCMakefile, SchemesSourcefile, \
                   TypedefsMakefile, TypedefsCMakefile, TypedefsSourcefile
-from mkdoc import metadata_to_html, metadata_to_latex
+from mkdoc import metadata_to_html, metadata_to_latex, metadata_to_rst
 from mkstatic import API, Suite, Group
 
 ###############################################################################
@@ -103,6 +103,7 @@ def import_config(configfile, builddir):
     config['host_model']                = ccpp_prebuild_config.HOST_MODEL_IDENTIFIER
     config['html_vartable_file']        = ccpp_prebuild_config.HTML_VARTABLE_FILE.format(build_dir=builddir)
     config['latex_vartable_file']       = ccpp_prebuild_config.LATEX_VARTABLE_FILE.format(build_dir=builddir)
+    config['rst_vartable_file']       = ccpp_prebuild_config.RST_VARTABLE_FILE.format(build_dir=builddir)
     # For static build: location of static API file, and shell script to source
     config['static_api_dir']            = ccpp_prebuild_config.STATIC_API_DIR.format(build_dir=builddir)
     config['static_api_srcfile']        = ccpp_prebuild_config.STATIC_API_SRCFILE.format(build_dir=builddir)
@@ -153,6 +154,7 @@ def clean_files(config, static):
         config['caps_sourcefile'],
         config['html_vartable_file'],
         config['latex_vartable_file'],
+        config['rst_vartable_file'],
         ]
     if static:
         files_to_remove.append(os.path.join(config['caps_dir'], 'ccpp_*_cap.F90'))
@@ -844,10 +846,10 @@ def main():
     if not success:
         raise Exception('Call to check_optional_arguments failed.')
 
-    # Create a LaTeX table with all variables requested by the pool of physics and/or provided by the host model
-    success = metadata_to_latex(metadata_define, metadata_request, pset_request, config['host_model'], config['latex_vartable_file'])
+    # Create a reStructured Text (rst) file with all variables requested by the pool of physics and/or provided by the host model
+    success = metadata_to_rst(metadata_define, metadata_request, pset_request, config['host_model'], config['rst_vartable_file'])
     if not success:
-        raise Exception('Call to metadata_to_latex failed.')
+        raise Exception('Call to metadata_to_rst failed.')
 
     # Flatten list of list of psets for all variables
     psets_merged = list(set(itertools.chain(*pset_request.values())))

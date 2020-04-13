@@ -179,3 +179,89 @@ def metadata_to_latex(metadata_define, metadata_request, pset_request, model, fi
 
     logging.info('Metadata table for model {0} written to {1}'.format(model, filename))
     return success
+
+def metadata_to_rst(metadata_define, metadata_request, pset_request, model, filename):
+    """Create an rst document with a table that lists each variable provided and/or requested."""
+
+    success = True
+
+    var_names = sorted(list(set(list(metadata_define.keys()) + list(metadata_request.keys()))))
+
+    latex = '''
+========================================================================
+CCPP variables provided by model {model} vs requested by pool of physics
+========================================================================\n
+.. _list_of_variables: \n
+-----------------
+List of variables
+-----------------
+'''.format(model=model)
+
+    for var_name in var_names:
+        if var_name in metadata_define.keys():
+            var = metadata_define[var_name][0]
+        else:
+            var = metadata_request[var_name][0]
+        line = '''| {standard_name}_ \n'''.format(standard_name=var.standard_name)
+        latex += line
+
+    latex += '''  '''
+
+    for var_name in var_names:
+        if var_name in metadata_define.keys():
+            var = metadata_define[var_name][0]
+            target = decode_container(var.container)
+            local_name = var.local_name
+        else:
+            var = metadata_request[var_name][0]
+            target = 'MISSING'
+            local_name = 'MISSING'
+        if var_name in metadata_request.keys():
+            requested_list = [ decode_container(v.container) for v in metadata_request[var_name] ]
+            # for the purpose of the table, just output the name of the subroutine
+            for i in range(len(requested_list)):
+                entry = requested_list[i]
+                requested_list[i] = entry[entry.find('SUBROUTINE')+len('SUBROUTINE')+1:]
+            requested = '''\n                '''.join(sorted(requested_list))
+        else:
+            requested = 'NOT REQUESTED'
+        if var_name in pset_request.keys():
+            pset_list = [ c for c in pset_request[var_name] ]
+            pset = '''   '''.join(sorted(pset_list))
+        else:
+            pset = ''
+
+        # Create link and output
+        text = '''\n.. _{standard_name}: \n
+{standard_name}: \n
+:: \n
+   long_name    {long_name}
+   units        {units}
+   rank         {rank}
+   type         {type}
+   kind         {kind}
+   source       {target}
+   local_name   {local_name}
+   requested    {requested}
+   physics set  {set} \n
+Return to :ref:`list_of_variables`
+'''.format(standard_name=var.standard_name,
+                         long_name=var.long_name,
+                         units=var.units,
+                         rank=var.rank.count(':'),
+                         type=var.type,
+                         kind=var.kind,
+                         target=target,
+                         local_name=local_name,
+                         requested=requested,
+                         set=pset)
+        latex += text
+
+    filepath = os.path.split(os.path.abspath(filename))[0]
+    if not os.path.isdir(filepath):
+        os.makedirs(filepath)
+    with open(filename, 'w') as f:
+        f.write(latex)
+
+    logging.info('Metadata table for model {0} written to {1}'.format(model, filename))
+    return success
